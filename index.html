@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Velha - Treinamento Consultivo Lupo Sport</title>
+    <style>
+        :root {
+            --primary: #002b49;
+            --secondary: #008080;
+            --accent: #e65100;
+            --bg: #f4f6f9;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+
+        p.subtitle {
+            color: #666;
+            font-size: 0.95rem;
+            margin-top: 0;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            font-weight: bold;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            aspect-ratio: 1;
+            background: var(--primary);
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .cell {
+            background: var(--card-bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .cell:hover {
+            background: #eef2f7;
+            transform: scale(0.98);
+        }
+
+        .cell.x { color: var(--accent); }
+        .cell.o { color: var(--secondary); }
+
+        /* Modal / Pop-up de Desafio */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+        }
+
+        .tech-box {
+            background: #eef7f6;
+            border-left: 4px solid var(--secondary);
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .option-btn {
+            background: #f8f9fa;
+            border: 1px solid #ced4da;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            background: #e2e8f0;
+            border-color: var(--primary);
+        }
+
+        .status-msg {
+            font-weight: bold;
+            color: var(--primary);
+            min-height: 24px;
+        }
+
+        button.reset-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button.reset-btn:hover {
+            background: #001a2d;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Jogo da Velha Consultivo</h1>
+        <p class="subtitle">Universidade de Vendas Lupo Sport | Treinamento de Alta Performance</p>
+    </header>
+
+    <div class="game-container">
+        <div class="scoreboard">
+            <div>Consultor (X): <span id="score-user">0</span></div>
+            <div>Robô Tutor (O): <span id="score-cpu">0</span></div>
+        </div>
+
+        <div class="status-msg" id="status">Sua vez! Escolha uma casa no tabuleiro.</div>
+
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+
+        <button class="reset-btn" onclick="resetGame()">Reiniciar Partida</button>
+    </div>
+
+    <!-- Modal do Desafio Técnico vs Vendas -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2 id="modal-title">Desafio Tecnológico</h2>
+            <p><strong>Nível / Tecnologia:</strong> <span id="tech-name">--</span></p>
+            
+            <div class="tech-box">
+                <strong>⚙️ Conhecimento Técnico Interno:</strong><br>
+                <span id="tech-desc">--</span>
+            </div>
+
+            <p><strong>🗣️ Qual é a melhor "Fala Focada no Cliente" (O que ele leva)?</strong></p>
+            
+            <div class="options-container" id="options">
+                <!-- Opções injetadas via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Banco de Dados Baseado na Matriz das Apresentações e Materiais Lupo Sport
+        const database = [
+            {
+                level: "NÍVEL 1: SUSTENTABILIDADE & CONSCIÊNCIA ECOLÓGICA",
+                tech: "Sensil® ByNature",
+                desc: "Poliamida produzida com substituição de matéria-prima fóssil por renovável, reduzindo a pegada de carbono.",
+                correct: "Essa peça oferece a mesma durabilidade e qualidade premium da poliamida Lupo, mas com processo ecológico que ajuda a preservar o meio ambiente.",
+                wrongs: [
+                    "Mantém o corpo aquecido na medida certa nos dias frios, sem pesar ou abafar durante o uso.",
+                    "Protege sua pele contra os raios solares no treino ao ar livre e afasta insetos com total segurança."
+                ]
+            },
+            {
+                level: "NÍVEL 1: SUSTENTABILIDADE & CONSCIÊNCIA ECOLÓGICA",
+                tech: "Amni Soul Eco® / Biodegradável",
+                desc: "Fio de poliamida 6.6 biodegradável desenvolvido no Brasil que se decompõe em cerca de 3 anos após descarte em aterro sanitário.",
+                correct: "É uma peça super macia e resistente que, quando descartada no futuro, se decompõe muito mais rápido que os tecidos comuns, sem deixar resíduos.",
+                wrongs: [
+                    "Proporciona uma sensação instantânea de frescor e toque gelado, ideal para dias quentes.",
+                    "Ajuda a reduzir a fadiga muscular, melhora a firmeza da pele e acelera a recuperação pós-treino."
+                ]
+            },
+            {
+                level: "NÍVEL 1: SUSTENTABILIDADE & CONSCIÊNCIA ECOLÓGICA",
+                tech: "Fio de Bambu / Bacteriostático",
+                desc: "Fibra natural de bambu com propriedades bacteriostáticas nativas (bamboo kun), alta respirabilidade e toque suave.",
+                correct: "Tem um toque extremamente macio e fresco, além de ser naturalmente bactericida, prevenindo maus odores de forma natural.",
+                wrongs: [
+                    "Não assa nem incomoda na pele porque não tem costuras laterais e seca super rápido.",
+                    "Dá aquela sensação de firmeza e sustentação aos músculos, melhorando sua postura."
+                ]
+            },
+            {
+                level: "NÍVEL 2: GESTÃO TÉRMICA & PROTEÇÃO CLIMÁTICA",
+                tech: "Sensil® Breeze",
+                desc: "Poliamida especial com efeito de resfriamento contínuo (propriedade termorreguladora de toque gelado).",
+                correct: "Proporciona uma sensação instantânea de frescor e toque gelado, ideal para dias mais quentes ou treinos intensos.",
+                wrongs: [
+                    "Mantém o calor corporal utilizando aditivos naturais de casca/torra de café no próprio fio.",
+                    "Possui algodão colhido manualmente que evita o surgimento de bolinhas no tecido."
+                ]
+            },
+            {
+                level: "NÍVEL 2: GESTÃO TÉRMICA & PROTEÇÃO CLIMÁTICA",
+                tech: "Sensil® Heat / Linha Warm (Café)",
+                desc: "Poliamida 6.6 Premium da Nilit contendo aditivo de resíduos da torra de grãos de café projetada para reter o calor e isolar o frio.",
+                correct: "Mantém o corpo aquecido na medida certa nos dias frios (segunda pele), sem pesar ou abafar durante o uso.",
+                wrongs: [
+                    "Oferece proteção de 98% contra os raios UV e repela mosquitos Aedes aegypti por até 40 lavagens.",
+                    "Possui efeito de resfriamento contínuo para você não suar em dias quentes."
+                ]
+            },
+            {
+                level: "NÍVEL 2: GESTÃO TÉRMICA & PROTEÇÃO CLIMÁTICA",
+                tech: "Proteção UV 50+ & Repelente (Permetrina)",
+                desc: "Bloqueio de 98% dos raios UVA/UVB no próprio fio aliado ao tratamento têxtil com permetrina contra insetos (Aedes aegypti).",
+                correct: "Protege sua pele contra os raios solares no treino ao ar livre e ainda afasta mosquitos e insetos com total segurança.",
+                wrongs: [
+                    "Sua decomposição ocorre em apenas 3 anos quando descartada em aterro sanitário.",
+                    "Converte o calor do seu corpo em raios infravermelhos para diminuir a celulite."
+                ]
+            },
+            {
+                level: "NÍVEL 3: ALTA PERFORMANCE & RECUPERAÇÃO MUSCULAR",
+                tech: "Fio Emana® (Rhodia)",
+                desc: "Fio de poliamida com minerais bioativos que convertem o calor do corpo em raios infravermelhos longos (FIR), estimulando a microcirculação.",
+                correct: "Ajuda a reduzir a fadiga muscular, melhora a firmeza da pele/celulite e acelera a recuperação após os treinos.",
+                wrongs: [
+                    "Oferece toque gelado instantâneo diminuindo a temperatura corporal em até 2 graus.",
+                    "Feito com fibra de bambu natural que evita bactérias sem uso de químicos."
+                ]
+            },
+            {
+                level: "NÍVEL 3: ALTA PERFORMANCE & RECUPERAÇÃO MUSCULAR",
+                tech: "Seamless Dry (Tecnologia Sem Costura)",
+                desc: "Tecelagem circular que elimina costuras nas zonas de atrito, combinada com tratamento de absorção e evaporação rápida de suor.",
+                correct: "Não assa nem incomoda na pele porque não tem costuras laterais, e seca super rápido durante a atividade.",
+                wrongs: [
+                    "Funciona como uma segunda pele de alto isolamento térmico para temperaturas abaixo de zero.",
+                    "Repela insetos e mosquitos da dengue por mais de 40 lavagens com sabão neutro."
+                ]
+            },
+            {
+                level: "NÍVEL 3: ALTA PERFORMANCE & RECUPERAÇÃO MUSCULAR",
+                tech: "Compressão (Leve, Média e Alta)",
+                desc: "Diferentes níveis de elastano por zona muscular para suporte, diminuição da vibração muscular, ajuste e estabilidade postural.",
+                correct: "Dá aquela sensação de firmeza e sustentação aos músculos, melhorando sua postura e conforto no exercício.",
+                wrongs: [
+                    "É um fio biodegradável que se dissolve na natureza em 36 meses.",
+                    "Tecido feito com resíduos renováveis que reduzem a emissão de carbono."
+                ]
+            }
+        ];
+
+        // Estado do Jogo
+        let boardState = ['', '', '', '', '', '', '', '', ''];
+        let gameActive = true;
+        let selectedCellIndex = null;
+        let scoreUser = 0;
+        let scoreCpu = 0;
+
+        const winningCombos = [
+            [0,1,2], [3,4,5], [6,7,8], // Linhas
+            [0,3,6], [1,4,7], [2,5,8], // Colunas
+            [0,4,8], [2,4,6]          // Diagonais
+        ];
+
+        const cells = document.querySelectorAll('.cell');
+        const statusTxt = document.getElementById('status');
+        const modal = document.getElementById('modal');
+
+        // Inicialização
+        cells.forEach(cell => {
+            cell.addEventListener('click', handleCellClick);
+        });
+
+        function handleCellClick(e) {
+            const index = e.target.getAttribute('data-index');
+
+            if (boardState[index] !== '' || !gameActive) return;
+
+            selectedCellIndex = index;
+            openChallenge();
+        }
+
+        function openChallenge() {
+            // Seleciona um desafio aleatório
+            const randomItem = database[Math.floor(Math.random() * database.length)];
+            
+            document.getElementById('tech-name').innerText = `${randomItem.tech} (${randomItem.level})`;
+            document.getElementById('tech-desc').innerText = randomItem.desc;
+
+            // Monta opções (1 certa + 2 erradas embaralhadas)
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+
+            const allOptions = [
+                { text: randomItem.correct, isCorrect: true },
+                { text: randomItem.wrongs[0], isCorrect: false },
+                { text: randomItem.wrongs[1], isCorrect: false }
+            ].sort(() => Math.random() - 0.5);
+
+            allOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt.text;
+                btn.onclick = () => handleAnswer(opt.isCorrect);
+                optionsContainer.appendChild(btn);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        function handleAnswer(isCorrect) {
+            modal.style.display = 'none';
+
+            if (isCorrect) {
+                makeMove(selectedCellIndex, 'X');
+                statusTxt.innerText = "Excelente resposta consultiva! Ponto marcado.";
+                
+                if (checkWin('X')) {
+                    statusTxt.innerText = "🎉 Parabéns! Você venceu a partida!";
+                    scoreUser++;
+                    updateScores();
+                    gameActive = false;
+                    return;
+                }
+
+                if (checkTie()) {
+                    statusTxt.innerText = "Empate técnico!";
+                    gameActive = false;
+                    return;
+                }
+
+                // Vez do Robô
+                setTimeout(cpuTurn, 600);
+            } else {
+                statusTxt.innerText = "❌ Resposta incorreta! Você perdeu a chance de jogar esta rodada.";
+                setTimeout(cpuTurn, 800);
+            }
+        }
+
+        function cpuTurn() {
+            if (!gameActive) return;
+
+            statusTxt.innerText = "O Robô Tutor está pensando...";
+
+            // Lógica do Robô (Escolhe casa vazia aleatória ou estratégica)
+            let emptyIndices = [];
+            boardState.forEach((val, idx) => {
+                if (val === '') emptyIndices.push(idx);
+            });
+
+            if (emptyIndices.length > 0) {
+                const cpuChoice = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+                makeMove(cpuChoice, 'O');
+
+                if (checkWin('O')) {
+                    statusTxt.innerText = "🤖 O Robô Tutor venceu esta partida! Estude mais o conteúdo!";
+                    scoreCpu++;
+                    updateScores();
+                    gameActive = false;
+                    return;
+                }
+
+                if (checkTie()) {
+                    statusTxt.innerText = "Empate técnico!";
+                    gameActive = false;
+                    return;
+                }
+
+                statusTxt.innerText = "Sua vez! Escolha uma casa no tabuleiro.";
+            }
+        }
+
+        function makeMove(index, symbol) {
+            boardState[index] = symbol;
+            const cell = cells[index];
+            cell.innerText = symbol;
+            cell.classList.add(symbol.toLowerCase());
+        }
+
+        function checkWin(symbol) {
+            return winningCombos.some(combo => {
+                return combo.every(idx => boardState[idx] === symbol);
+            });
+        }
+
+        function checkTie() {
+            return boardState.every(cell => cell !== '');
+        }
+
+        function updateScores() {
+            document.getElementById('score-user').innerText = scoreUser;
+            document.getElementById('score-cpu').innerText = scoreCpu;
+        }
+
+        function resetGame() {
+            boardState = ['', '', '', '', '', '', '', '', ''];
+            gameActive = true;
+            statusTxt.innerText = "Novo jogo iniciado! Sua vez.";
+            cells.forEach(cell => {
+                cell.innerText = '';
+                cell.classList.remove('x', 'o');
+            });
+        }
+    </script>
+</body>
+</html>
